@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Greeter</title>
+  <style>
+    body { font-family: sans-serif; max-width: 520px; margin: 40px auto; }
+    input, button { padding: 8px; font-size: 1em; }
+    #greeting { margin: 16px 0; font-weight: bold; color: #2a7; }
+    #error { color: #c33; }
+    table { border-collapse: collapse; width: 100%; }
+    td, th { border-bottom: 1px solid #ddd; padding: 6px; text-align: left; }
+  </style>
+</head>
+<body>
+  <h1>Greeter</h1>
+  <form id="form">
+    <input id="name" placeholder="Your name" maxlength="100" required>
+    <button type="submit">Greet me</button>
+  </form>
+  <div id="greeting"></div>
+  <div id="error"></div>
+  <div>Served by API pod: <code id="pod">-</code></div>
+
+  <h2>Saved names</h2>
+  <table>
+    <thead><tr><th>#</th><th>Name</th><th>Created</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const showPod = r => { $('pod').textContent = r.headers.get('X-Served-By') || '-'; };
+
+    async function loadNames() {
+      const r = await fetch('/api/names');
+      showPod(r);
+      if (!r.ok) throw new Error('could not load names');
+      const tbody = $('rows');
+      tbody.replaceChildren();
+      for (const n of await r.json()) {
+        const tr = tbody.insertRow();
+        tr.insertCell().textContent = n.id;
+        tr.insertCell().textContent = n.name;
+        tr.insertCell().textContent = new Date(n.created_at).toLocaleString();
+      }
+    }
+
+    $('form').addEventListener('submit', async e => {
+      e.preventDefault();
+      $('error').textContent = '';
+      try {
+        const r = await fetch('/api/greet', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: $('name').value }),
+        });
+        showPod(r);
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'request failed');
+        $('greeting').textContent = data.greeting;
+        $('name').value = '';
+        await loadNames();
+      } catch (err) {
+        $('error').textContent = err.message;
+      }
+    });
+
+    loadNames().catch(err => { $('error').textContent = err.message; });
+  </script>
+</body>
+</html>

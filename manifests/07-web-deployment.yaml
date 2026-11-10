@@ -1,0 +1,21 @@
+apiVersion: apps/v1 # API group for Deployments
+kind: Deployment # Resource type: keeps pods running
+metadata:
+  name: web # Deployment name
+  namespace: greeter # Namespace of the Deployment
+spec:
+  replicas: 1 # Number of web pods
+  selector:
+    matchLabels:
+      app: web # Pods with this label belong to this Deployment
+  template:
+    metadata:
+      labels:
+        app: web # Label put on each pod, matched by the Service
+    spec:
+      containers:
+        - name: web # Container name
+          image: greeter-web:1.1 # Local nginx image built from ./web
+          imagePullPolicy: IfNotPresent # Use the local image, don't pull
+          ports:
+            - containerPort: 80 # Port nginx listens on

@@ -1,0 +1,50 @@
+apiVersion: apps/v1 # API group for Deployments
+kind: Deployment # Resource type: keeps pods running
+metadata:
+  name: api # Deployment name, also the HPA target
+  namespace: greeter # Namespace of the Deployment
+spec: # No replicas here, the HPA in 10-api-hpa.yaml controls the count
+  selector:
+    matchLabels:
+      app: api # Pods with this label belong to this Deployment
+  template:
+    metadata:
+      labels:
+        app: api # Label put on each pod, matched by the Service and NetworkPolicy
+    spec:
+      containers:
+        - name: api # Container name
+          image: greeter-api:1.1 # Local image built from ./api
+          imagePullPolicy: IfNotPresent # Use the local image, don't pull
+          ports:
+            - containerPort: 5000 # Port the Flask app listens on
+          resources:
+            requests:
+              cpu: 50m # Reserved CPU (0.05 core), the HPA percentage is based on this
+              memory: 64Mi # Reserved memory
+            limits:
+              memory: 128Mi # Pod is killed if it uses more memory than this
+          env:
+            - name: DB_HOST # Database host variable read by app.py
+              value: db # Name of the db Service
+            - name: DB_NAME # Database name variable
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials # Secret to read from
+                  key: POSTGRES_DB # Key inside the Secret
+            - name: DB_USER # Database user variable
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials # Secret to read from
+                  key: POSTGRES_USER # Key inside the Secret
+            - name: DB_PASSWORD # Database password variable
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials # Secret to read from
+                  key: POSTGRES_PASSWORD # Key inside the Secret
+          readinessProbe:
+            httpGet:
+              path: /health # Endpoint that also checks the DB connection
+              port: 5000 # Port to probe
+            initialDelaySeconds: 3 # Wait before the first check
+            periodSeconds: 5 # Check every 5 seconds

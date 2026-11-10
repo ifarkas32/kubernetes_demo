@@ -1,0 +1,22 @@
+apiVersion: autoscaling/v2 # API version that supports multiple metrics and behavior
+kind: HorizontalPodAutoscaler # Resource type: scales pod count automatically
+metadata:
+  name: api # HPA name
+  namespace: greeter # Namespace of the HPA, must match the target Deployment
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1 # API version of the scaled resource
+    kind: Deployment # Kind of the scaled resource
+    name: api # Name of the Deployment to scale
+  minReplicas: 1 # Never run fewer than this many pods
+  maxReplicas: 5 # Never run more than this many pods
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 30 # Wait this long with low load before removing pods
+  metrics:
+    - type: Resource # Metric comes from pod resource usage (needs metrics-server)
+      resource:
+        name: cpu # Resource measured
+        target:
+          type: Utilization # Compare average usage as a percentage of the CPU request
+          averageUtilization: 60 # Add pods when average CPU passes 60% of the request

@@ -1,0 +1,41 @@
+apiVersion: apps/v1 # API group for Deployments
+kind: Deployment # Resource type: keeps pods running
+metadata:
+  name: db # Deployment name
+  namespace: greeter # Namespace of the Deployment
+spec:
+  replicas: 1 # Single DB pod, Postgres can't share one data directory
+  strategy:
+    type: Recreate # Stop the old pod before starting the new one (same volume)
+  selector:
+    matchLabels:
+      app: db # Pods with this label belong to this Deployment
+  template:
+    metadata:
+      labels:
+        app: db # Label put on each pod, matched by the Service and NetworkPolicy
+    spec:
+      containers:
+        - name: postgres # Container name
+          image: greeter-db:1.0 # Local image built from ./db
+          imagePullPolicy: IfNotPresent # Use the local image, don't pull
+          ports:
+            - containerPort: 5432 # Postgres port
+          envFrom:
+            - secretRef:
+                name: db-credentials # Load POSTGRES_* variables from this Secret
+          env:
+            - name: PGDATA # Where Postgres keeps its data files
+              value: /var/lib/postgresql/data/pgdata # Subfolder, because the volume root contains lost+found
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"] # Ready when Postgres accepts connections
+            initialDelaySeconds: 5 # Wait before the first check
+            periodSeconds: 5 # Check every 5 seconds
+          volumeMounts:
+            - name: data # Volume defined below
+              mountPath: /var/lib/postgresql/data # Where the volume appears in the container
+      volumes:
+        - name: data # Volume name used by volumeMounts
+          persistentVolumeClaim:
+            claimName: db-data # Storage claim from 02-db-pvc.yaml

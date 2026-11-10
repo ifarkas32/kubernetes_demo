@@ -1,0 +1,11 @@
+apiVersion: v1 # Core API group
+kind: Service # Resource type: stable address for pods
+metadata:
+  name: db # DNS name other pods use as DB_HOST
+  namespace: greeter # Namespace of the Service
+spec:
+  selector:
+    app: db # Send traffic to pods with this label
+  ports:
+    - port: 5432 # Port exposed by the Service
+      targetPort: 5432 # Port on the pod
