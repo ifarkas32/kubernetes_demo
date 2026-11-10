@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Database dumps (may contain user data)
+backup.sql
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
